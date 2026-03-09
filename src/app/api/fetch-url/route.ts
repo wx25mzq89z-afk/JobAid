@@ -38,8 +38,18 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
+      if (response.status === 403 || response.status === 401) {
+        return NextResponse.json(
+          {
+            error:
+              "This site does not allow automated access (access forbidden). Please copy the job description text from the page and paste it manually in the text field.",
+            isForbidden: true,
+          },
+          { status: 502 }
+        );
+      }
       return NextResponse.json(
-        { error: `Failed to fetch URL: ${response.statusText}` },
+        { error: `Failed to fetch URL: ${response.statusText}. Try pasting the job description text manually.` },
         { status: 502 }
       );
     }
