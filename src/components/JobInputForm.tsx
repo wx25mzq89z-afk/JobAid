@@ -12,11 +12,13 @@ export default function JobInputForm({ onAnalyze, isLoading }: JobInputFormProps
   const [text, setText] = useState("");
   const [url, setUrl] = useState("");
   const [fetchError, setFetchError] = useState("");
+  const [isForbidden, setIsForbidden] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
 
   async function handleFetchUrl() {
     if (!url.trim()) return;
     setFetchError("");
+    setIsForbidden(false);
     setIsFetching(true);
     try {
       const res = await fetch("/api/fetch-url", {
@@ -27,6 +29,7 @@ export default function JobInputForm({ onAnalyze, isLoading }: JobInputFormProps
       const data = await res.json();
       if (!res.ok) {
         setFetchError(data.error || "Failed to fetch URL");
+        setIsForbidden(!!data.isForbidden);
       } else {
         setText(data.text);
         setActiveTab("text");
@@ -36,6 +39,12 @@ export default function JobInputForm({ onAnalyze, isLoading }: JobInputFormProps
     } finally {
       setIsFetching(false);
     }
+  }
+
+  function handleSwitchToPasteTab() {
+    setActiveTab("text");
+    setFetchError("");
+    setIsForbidden(false);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -98,7 +107,24 @@ export default function JobInputForm({ onAnalyze, isLoading }: JobInputFormProps
               </button>
             </div>
             {fetchError && (
-              <p className="text-sm text-red-600 dark:text-red-400">{fetchError}</p>
+              <div className={`rounded-lg p-3 text-sm ${isForbidden ? "border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20" : "text-red-600 dark:text-red-400"}`}>
+                {isForbidden ? (
+                  <div className="space-y-2">
+                    <p className="font-medium text-amber-800 dark:text-amber-300"><span aria-hidden="true">⚠️</span> Access blocked by this site</p>
+                    <p className="text-amber-700 dark:text-amber-400">{fetchError}</p>
+                    <button
+                      type="button"
+                      onClick={handleSwitchToPasteTab}
+                      aria-label="Switch to Paste Job Description tab"
+                      className="inline-flex items-center gap-1 rounded bg-amber-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700"
+                    >
+                      <span aria-hidden="true">📋</span> Switch to Paste tab
+                    </button>
+                  </div>
+                ) : (
+                  <p>{fetchError}</p>
+                )}
+              </div>
             )}
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Note: Some job sites block automated access. If fetching fails, paste the description manually.
